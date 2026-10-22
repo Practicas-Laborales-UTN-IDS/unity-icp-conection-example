@@ -108,23 +108,3 @@ public class ICPIdentityManager : MonoBehaviour
     }
 }
 ```
-
----
-
-## 4. Requerimientos de Desarrollo para los Equipos de Juego
-
-Cada proyecto de juego en Unity debe cumplir con los siguientes entregables internos:
-
-1. **Script de Inicialización de Sesión:**
-   * Garantizar que `ICPIdentityManager` se instancie en la primera escena cargada (Splash/Main Menu).
-2. **Firmas y Llamadas al Backend:**
-   * Todas las peticiones mutativas (actualización de puntuación, desbloqueo de logros, reclamo de tokens ICRC-2) deben incluir el payload y la firma digital firmada por `CurrentIdentity`.
-3. **Módulo Progresivo de Recuperación (OAuth 2.0 / Google Sign-In):**
-   * Crear un botón opcional en el menú de ajustes ("Vincular Cuenta") que permita enviar un token de Google al backend para vincular el email del jugador al `Principal ID` del dispositivo, garantizando la recuperación de la cuenta ante cambio de terminal.
-
----
-
-## 5. Especificaciones de Comunicación con Canisters
-
-* **Generación de Clientes C#:** Los equipos deben utilizar la herramienta `candid-client-generator` provista por ICP.NET a partir de los archivos `.did` (Candid) expuestos por el backend de ICP.
-* **Tokens ICRC-2:** Las recompensas financieras y de juego se procesan directamente asociando el `Principal ID` de la identidad del usuario con la ledger del token.
