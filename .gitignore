@@ -1,0 +1,35 @@
+# --- Carpetas temporales y compilados de Unity ---
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+
+# --- Proyectos de C# / Soluciones de IDEs ---
+/*.csproj
+/*.unityproj
+/*.sln
+/*.slnx
+/*.suo
+/*.tmp
+/*.user
+/*.userprefs
+/*.pidb
+/*.booproj
+/*.svd
+/*.pdb
+/*.opendb
+/*.VC.db
+
+# --- Configuración de Editores ---
+.vscode/
+.idea/
+*.user
+*.userprefs
+
+# --- OS / Archivos de sistema ---
+.DS_Store
+Thumbs.db
