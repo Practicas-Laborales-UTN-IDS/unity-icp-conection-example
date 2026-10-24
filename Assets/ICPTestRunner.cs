@@ -7,11 +7,13 @@ using EdjCase.ICP.Candid.Models;
 using My.Namespace.MyClient;
 using System;
 using System.Threading.Tasks;
+using System.Numerics;
 
 public class ICPTestRunner : MonoBehaviour
 {
     private const string PREF_KEY_PRIV = "icp_key_priv_b64";
     private const string PREF_KEY_PUB = "icp_key_pub_b64";
+    private const long GameId = 1792816926624881701;
 
     private MyClientApiClient client;
 
@@ -21,7 +23,7 @@ public class ICPTestRunner : MonoBehaviour
 
     async void Start()
     {
-        Debug.Log("--- PROBANDO CLIENTE HÍBRIDO (ICP.NET + UnityWebRequest) ---");
+        Debug.Log("--- PROBANDO CLIENTE (ICP.NET + UnityWebRequest) ---");
         // Borrado de claves test
         // PlayerPrefs.DeleteAll();
         // 1. Identidad local persistente
@@ -140,4 +142,90 @@ public class ICPTestRunner : MonoBehaviour
             Debug.LogError("Error al registrar el usuario en el canister: " + ex.Message);
         }
     }
+
+
+    public async Task<ulong> GetSeedFromBackend()
+    {
+        if (client == null)
+        {
+            throw new InvalidOperationException(
+                "El cliente ICP no está inicializado.");
+        }
+
+
+        var response = await client.StartSessionGame(GameId);
+        
+        // Comprobar si el backend devolvió un error.
+        if (response.Tag == MyClientApiClient.StartSessionGameReturnArg0Tag.Err)
+        {
+            throw new Exception($"Error del backend: {response.AsErr()}");
+        }
+
+        // Extraer los datos de la variante Ok.
+        var session = response.AsOk();
+
+
+        Debug.Log(response.GetType().FullName);
+
+        foreach (var property in response.GetType().GetProperties())
+        {
+            Debug.Log(
+                $"Propiedad: {property.Name} | Tipo: {property.PropertyType}"
+            );
+        }
+        UnboundedInt seed = session.Seed;
+        UnboundedInt expiresAt = session.ExpiresAt;
+
+        Debug.Log($"Seed recibida: {seed}");
+        Debug.Log($"Vencimiento (nanosegundos): {expiresAt}");
+
+        BigInteger expiresAtNs = BigInteger.Parse(
+            session.ExpiresAt.ToString()
+        );
+
+        BigInteger nowNs =
+            new BigInteger(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
+            * 1_000_000;
+
+        BigInteger remainingNs = expiresAtNs - nowNs;
+
+        double remainingSeconds = Math.Max(
+            0,
+            (double)remainingNs / 1_000_000_000.0
+        );
+
+        Debug.Log($"Tiempo restante: {remainingSeconds:F1} segundos");
+
+        // Convertir la seed a ulong si el juego la necesita así.
+        return ulong.Parse(seed.ToString());
+    }
+
+    public async System.Threading.Tasks.Task ReportGameResult()
+    {
+        Debug.Log("[ICP] Enviando resultado al canister...");
+
+
+        // Temporalmente vacíos: el backend todavía no los valida.
+        var payload = new System.Collections.Generic.List<byte>();
+        var proof = new System.Collections.Generic.List<byte>();
+
+        var response = await client.EndGame(
+            GameId,
+            payload,
+            proof
+        );
+
+        if (response.Tag ==
+            MyClientApiClient.EndGameReturnArg0Tag.Err)
+        {
+            throw new System.Exception(
+                $"El canister rechazó el resultado: {response.AsErr()}"
+            );
+        }
+
+        var reward = response.AsOk();
+
+        Debug.Log($"[ICP] Recompensa procesada: {reward.Tag}");
+    }
+
 }

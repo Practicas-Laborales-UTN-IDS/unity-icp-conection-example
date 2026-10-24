@@ -2,7 +2,7 @@
 namespace = "My.Namespace"
 
 # Will create a subfolder within this directory with all the files
-output-directory = "./Clients"
+output-directory = "./Assets/Clients"
 
 # Will override default boundry node url (like for local development)
 # Only useful for generating clients from a canister id

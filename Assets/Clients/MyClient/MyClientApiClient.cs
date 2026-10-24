@@ -31,6 +31,13 @@ namespace My.Namespace.MyClient
 			return reply.ToObjects<MyClientApiClient.AddAdminReturnArg0>(this.Converter);
 		}
 
+		public async Task<UnboundedInt> AddGame(MyClientApiClient.AddGameArg0 arg0)
+		{
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(arg0, this.Converter));
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "addGame", arg);
+			return reply.ToObjects<UnboundedInt>(this.Converter);
+		}
+
 		public async Task<MyClientApiClient.AddSuperAdminReturnArg0> AddSuperAdmin(Principal p)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(p, this.Converter));
@@ -53,12 +60,34 @@ namespace My.Namespace.MyClient
 			return reply.ToObjects<Models.UserResult>(this.Converter);
 		}
 
+		public async Task<MyClientApiClient.EndGameReturnArg0> EndGame(UnboundedInt gameId, List<byte> payload, List<byte> proof)
+		{
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(gameId, this.Converter), CandidTypedValue.FromObject(payload, this.Converter), CandidTypedValue.FromObject(proof, this.Converter));
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "endGame", arg);
+			return reply.ToObjects<MyClientApiClient.EndGameReturnArg0>(this.Converter);
+		}
+
 		public async Task<List<Models.User>> GetAdmins()
 		{
 			CandidArg arg = CandidArg.FromCandid();
 			QueryResponse response = await this.Agent.QueryAsync(this.CanisterId, "getAdmins", arg);
 			CandidArg reply = response.ThrowOrGetReply();
 			return reply.ToObjects<List<Models.User>>(this.Converter);
+		}
+
+		public async Task<List<Models.Game>> GetGames()
+		{
+			CandidArg arg = CandidArg.FromCandid();
+			QueryResponse response = await this.Agent.QueryAsync(this.CanisterId, "getGames", arg);
+			CandidArg reply = response.ThrowOrGetReply();
+			return reply.ToObjects<List<Models.Game>>(this.Converter);
+		}
+
+		public async Task<Models.SharedInventory> GetInventory()
+		{
+			CandidArg arg = CandidArg.FromCandid();
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getInventory", arg);
+			return reply.ToObjects<Models.SharedInventory>(this.Converter);
 		}
 
 		public async Task<List<Models.IdentityResult>> GetSuperAdmins()
@@ -127,6 +156,13 @@ namespace My.Namespace.MyClient
 			return reply.ToObjects<Models.UserResult>(this.Converter);
 		}
 
+		public async Task<MyClientApiClient.StartSessionGameReturnArg0> StartSessionGame(UnboundedInt gameId)
+		{
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(gameId, this.Converter));
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "startSessionGame", arg);
+			return reply.ToObjects<MyClientApiClient.StartSessionGameReturnArg0>(this.Converter);
+		}
+
 		public async Task<Models.UserResult> UpdateAvatar(OptionalValue<List<byte>> avatar)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(avatar, this.Converter));
@@ -192,6 +228,33 @@ namespace My.Namespace.MyClient
 			Ok
 		}
 
+		public class AddGameArg0
+		{
+			[CandidName("config")]
+			public Metadata Config { get; set; }
+
+			[CandidName("coverImg")]
+			public List<byte> CoverImg { get; set; }
+
+			[CandidName("description")]
+			public string Description { get; set; }
+
+			[CandidName("name")]
+			public string Name { get; set; }
+
+			public AddGameArg0(Metadata config, List<byte> coverImg, string description, string name)
+			{
+				this.Config = config;
+				this.CoverImg = coverImg;
+				this.Description = description;
+				this.Name = name;
+			}
+
+			public AddGameArg0()
+			{
+			}
+		}
+
 		[Variant]
 		public class AddSuperAdminReturnArg0
 		{
@@ -237,6 +300,62 @@ namespace My.Namespace.MyClient
 		}
 
 		public enum AddSuperAdminReturnArg0Tag
+		{
+			Err,
+			Ok
+		}
+
+		[Variant]
+		public class EndGameReturnArg0
+		{
+			[VariantTagProperty]
+			public MyClientApiClient.EndGameReturnArg0Tag Tag { get; set; }
+
+			[VariantValueProperty]
+			public object? Value { get; set; }
+
+			public EndGameReturnArg0(MyClientApiClient.EndGameReturnArg0Tag tag, object? value)
+			{
+				this.Tag = tag;
+				this.Value = value;
+			}
+
+			protected EndGameReturnArg0()
+			{
+			}
+
+			public static MyClientApiClient.EndGameReturnArg0 Err(string info)
+			{
+				return new MyClientApiClient.EndGameReturnArg0(MyClientApiClient.EndGameReturnArg0Tag.Err, info);
+			}
+
+			public static MyClientApiClient.EndGameReturnArg0 Ok(Models.Reward info)
+			{
+				return new MyClientApiClient.EndGameReturnArg0(MyClientApiClient.EndGameReturnArg0Tag.Ok, info);
+			}
+
+			public string AsErr()
+			{
+				this.ValidateTag(MyClientApiClient.EndGameReturnArg0Tag.Err);
+				return (string)this.Value!;
+			}
+
+			public Models.Reward AsOk()
+			{
+				this.ValidateTag(MyClientApiClient.EndGameReturnArg0Tag.Ok);
+				return (Models.Reward)this.Value!;
+			}
+
+			private void ValidateTag(MyClientApiClient.EndGameReturnArg0Tag tag)
+			{
+				if (!this.Tag.Equals(tag))
+				{
+					throw new InvalidOperationException($"Cannot cast '{this.Tag}' to type '{tag}'");
+				}
+			}
+		}
+
+		public enum EndGameReturnArg0Tag
 		{
 			Err,
 			Ok
@@ -356,6 +475,81 @@ namespace My.Namespace.MyClient
 		}
 
 		public enum RemoveSuperAdminReturnArg0Tag
+		{
+			Err,
+			Ok
+		}
+
+		[Variant]
+		public class StartSessionGameReturnArg0
+		{
+			[VariantTagProperty]
+			public MyClientApiClient.StartSessionGameReturnArg0Tag Tag { get; set; }
+
+			[VariantValueProperty]
+			public object? Value { get; set; }
+
+			public StartSessionGameReturnArg0(MyClientApiClient.StartSessionGameReturnArg0Tag tag, object? value)
+			{
+				this.Tag = tag;
+				this.Value = value;
+			}
+
+			protected StartSessionGameReturnArg0()
+			{
+			}
+
+			public static MyClientApiClient.StartSessionGameReturnArg0 Err(string info)
+			{
+				return new MyClientApiClient.StartSessionGameReturnArg0(MyClientApiClient.StartSessionGameReturnArg0Tag.Err, info);
+			}
+
+			public static MyClientApiClient.StartSessionGameReturnArg0 Ok(MyClientApiClient.StartSessionGameReturnArg0.OkInfo info)
+			{
+				return new MyClientApiClient.StartSessionGameReturnArg0(MyClientApiClient.StartSessionGameReturnArg0Tag.Ok, info);
+			}
+
+			public string AsErr()
+			{
+				this.ValidateTag(MyClientApiClient.StartSessionGameReturnArg0Tag.Err);
+				return (string)this.Value!;
+			}
+
+			public MyClientApiClient.StartSessionGameReturnArg0.OkInfo AsOk()
+			{
+				this.ValidateTag(MyClientApiClient.StartSessionGameReturnArg0Tag.Ok);
+				return (MyClientApiClient.StartSessionGameReturnArg0.OkInfo)this.Value!;
+			}
+
+			private void ValidateTag(MyClientApiClient.StartSessionGameReturnArg0Tag tag)
+			{
+				if (!this.Tag.Equals(tag))
+				{
+					throw new InvalidOperationException($"Cannot cast '{this.Tag}' to type '{tag}'");
+				}
+			}
+
+			public class OkInfo
+			{
+				[CandidName("expiresAt")]
+				public UnboundedInt ExpiresAt { get; set; }
+
+				[CandidName("seed")]
+				public UnboundedInt Seed { get; set; }
+
+				public OkInfo(UnboundedInt expiresAt, UnboundedInt seed)
+				{
+					this.ExpiresAt = expiresAt;
+					this.Seed = seed;
+				}
+
+				public OkInfo()
+				{
+				}
+			}
+		}
+
+		public enum StartSessionGameReturnArg0Tag
 		{
 			Err,
 			Ok
