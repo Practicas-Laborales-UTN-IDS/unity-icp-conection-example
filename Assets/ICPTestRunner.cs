@@ -5,6 +5,7 @@ using EdjCase.ICP.Agent.Agents;
 using EdjCase.ICP.Agent.Identities;
 using EdjCase.ICP.Candid.Models;
 using My.Namespace.MyClient;
+using My.Namespace.MyClient.Models;
 using System;
 using System.Threading.Tasks;
 using System.Numerics;
@@ -13,7 +14,7 @@ public class ICPTestRunner : MonoBehaviour
 {
     private const string PREF_KEY_PRIV = "icp_key_priv_b64";
     private const string PREF_KEY_PUB = "icp_key_pub_b64";
-    private const long GameId = 1792816926624881701;
+    private const long GameId = 1792881739670308783;
 
     private MyClientApiClient client;
 
@@ -102,6 +103,29 @@ public class ICPTestRunner : MonoBehaviour
         {
             Debug.LogError("Error al invocar el canister: " + ex.Message);
         }
+    }
+
+    public async Task<SharedScore> GetPlayerScore()
+    {
+        if (client == null)
+        {
+            Debug.LogError("[ICP] El cliente no está inicializado.");
+            return null;
+        }
+
+        Debug.Log("[ICP] Consultando score del jugador en la blockchain...");
+
+        OptionalValue<Principal> userOpt = new OptionalValue<Principal>();
+
+        var score = await client.GetScore(userOpt, GameId); 
+
+        if (score != null)
+        {
+            Debug.Log($"[ICP] Partidas jugadas: {score.GamesPlayed}");
+            Debug.Log($"[ICP] Puntos acumulados: {score.TotalPoints}");
+        }
+
+        return score;
     }
 
     private void OnRegisterButtonClicked()

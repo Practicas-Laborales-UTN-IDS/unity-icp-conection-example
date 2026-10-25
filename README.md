@@ -108,3 +108,6 @@ public class ICPIdentityManager : MonoBehaviour
     }
 }
 ```
+
+Comando para generar las clases C# a partir del archivo .did 
+candid-client-generator gen

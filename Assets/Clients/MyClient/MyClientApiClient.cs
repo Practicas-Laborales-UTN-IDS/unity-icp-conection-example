@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using EdjCase.ICP.Candid.Mapping;
 using System;
 using Metadata = System.Collections.Generic.List<My.Namespace.MyClient.Models.Entry>;
+using GameId = EdjCase.ICP.Candid.Models.UnboundedInt;
 
 namespace My.Namespace.MyClient
 {
@@ -83,11 +84,11 @@ namespace My.Namespace.MyClient
 			return reply.ToObjects<List<Models.Game>>(this.Converter);
 		}
 
-		public async Task<Models.SharedInventory> GetInventory()
+		public async Task<Models.SharedScore> GetScore(OptionalValue<Principal> u, GameId gameId)
 		{
-			CandidArg arg = CandidArg.FromCandid();
-			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getInventory", arg);
-			return reply.ToObjects<Models.SharedInventory>(this.Converter);
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(u, this.Converter), CandidTypedValue.FromObject(gameId, this.Converter));
+			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getScore", arg);
+			return reply.ToObjects<Models.SharedScore>(this.Converter);
 		}
 
 		public async Task<List<Models.IdentityResult>> GetSuperAdmins()

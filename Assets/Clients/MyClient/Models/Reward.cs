@@ -39,6 +39,11 @@ namespace My.Namespace.MyClient.Models
 			return new Reward(RewardTag.Points, info);
 		}
 
+		public static Reward Tokens(UnboundedUInt info)
+		{
+			return new Reward(RewardTag.Tokens, info);
+		}
+
 		public UnboundedInt AsAsset()
 		{
 			this.ValidateTag(RewardTag.Asset);
@@ -57,6 +62,12 @@ namespace My.Namespace.MyClient.Models
 			return (UnboundedUInt)this.Value!;
 		}
 
+		public UnboundedUInt AsTokens()
+		{
+			this.ValidateTag(RewardTag.Tokens);
+			return (UnboundedUInt)this.Value!;
+		}
+
 		private void ValidateTag(RewardTag tag)
 		{
 			if (!this.Tag.Equals(tag))
@@ -70,6 +81,7 @@ namespace My.Namespace.MyClient.Models
 	{
 		Asset,
 		Custom,
-		Points
+		Points,
+		Tokens
 	}
 }

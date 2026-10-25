@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
+using My.Namespace.MyClient.Models;
 using UnityEngine.UI;
 
 public class SimonGameController : MonoBehaviour
@@ -19,6 +20,13 @@ public class SimonGameController : MonoBehaviour
 
     [Header("ICP Backend")]
     [SerializeField] private ICPTestRunner icpService;
+
+    [Header("UI Text References")]
+    [SerializeField] private TMP_Text pointsText;
+    [SerializeField] private TMP_Text gamesPlayedText;
+
+    [Header("Audio")]
+    [SerializeField] private SimonToneSynthesizer toneSynthesizer;
 
     [Header("Game Buttons")]
     [SerializeField] private Button startButton;
@@ -98,6 +106,7 @@ public class SimonGameController : MonoBehaviour
         state = GameState.Idle;
         SetButtonsInteractable(false);
         UpdateUI();
+        _ = LoadPlayerScore();
     }
 
     private void OnDestroy()
@@ -127,6 +136,43 @@ public class SimonGameController : MonoBehaviour
     {
         await StartGame();
     }
+
+    public async Task LoadPlayerScore()
+{
+    if (icpService == null)
+    {
+        Debug.LogError("[SIMON] No se asignó la referencia de ICPTestRunner.");
+        return;
+    }
+
+    try
+    {
+        // Llamamos al servicio y hacemos un cast seguro a SharedScore
+        var rawScore = await icpService.GetPlayerScore();
+        
+        // Hacemos el cast explícito para que C# reconozca las propiedades sin requerir C# Runtime Binder
+        SharedScore score = rawScore as SharedScore;
+
+        if (score == null || this == null) return;
+
+        // Pintamos los datos en los textos de TextMeshPro
+        if (pointsText != null)
+        {
+            pointsText.text = $"Puntos: {score.TotalPoints}";
+        }
+
+        if (gamesPlayedText != null)
+        {
+            gamesPlayedText.text = $"Partidas: {score.GamesPlayed}";
+        }
+
+        Debug.Log("[SIMON] ¡Textos de interfaz actualizados con éxito desde la blockchain!");
+    }
+    catch (Exception ex)
+    {
+        Debug.LogError($"[SIMON] Error al actualizar la interfaz: {ex.Message}");
+    }
+}
 
     public async Task StartGame()
     {
@@ -370,6 +416,7 @@ public class SimonGameController : MonoBehaviour
 
         // SimulateBackendReport(reachedLevel);
         ReportGameToBackend(reachedLevel, completed);
+        _ = LoadPlayerScore();
 
         startButton.interactable = true;
     }
@@ -426,6 +473,7 @@ public class SimonGameController : MonoBehaviour
     
 
     
+    
     private void SetColorHighlighted(int index, bool highlighted)
     {
         if (colorImages == null ||
@@ -450,20 +498,32 @@ public class SimonGameController : MonoBehaviour
         {
             switch (index)
             {
-                case 0: // Rojo
+                case 0: // Rojo — La4
                     result = new Color(1f, 0.45f, 0.45f, 1f);
+
+                    if (toneSynthesizer != null)
+                        toneSynthesizer.PlayRed();
                     break;
 
-                case 1: // Azul
+                case 1: // Azul — Mi5
                     result = new Color(0.45f, 0.68f, 1f, 1f);
+
+                    if (toneSynthesizer != null)
+                        toneSynthesizer.PlayBlue();
                     break;
 
-                case 2: // Amarillo
+                case 2: // Amarillo — Do#5
                     result = new Color(1f, 1f, 0.65f, 1f);
+
+                    if (toneSynthesizer != null)
+                        toneSynthesizer.PlayYellow();
                     break;
 
-                case 3: // Verde
+                case 3: // Verde — Mi4
                     result = new Color(0.35f, 1f, 0.60f, 1f);
+
+                    if (toneSynthesizer != null)
+                        toneSynthesizer.PlayGreen();
                     break;
 
                 default:
@@ -474,6 +534,7 @@ public class SimonGameController : MonoBehaviour
 
         colorImages[index].color = result;
     }
+
     
     private void RestoreAllColors()
     {
