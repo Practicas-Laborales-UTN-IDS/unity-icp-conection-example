@@ -1,8 +1,8 @@
 using EdjCase.ICP.Candid.Mapping;
-using My.Namespace.MyClient.Models;
+using InsideDarkStudio.Clients.IDS.Models;
 using Key = System.String;
 
-namespace My.Namespace.MyClient.Models
+namespace InsideDarkStudio.Clients.IDS.Models
 {
 	public class Entry
 	{

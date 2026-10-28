@@ -4,19 +4,28 @@ using TMPro;
 using EdjCase.ICP.Agent.Agents;
 using EdjCase.ICP.Agent.Identities;
 using EdjCase.ICP.Candid.Models;
-using My.Namespace.MyClient;
-using My.Namespace.MyClient.Models;
+using InsideDarkStudio.Clients.IDS;
+using InsideDarkStudio.Clients.IDS.Models;
 using System;
 using System.Threading.Tasks;
 using System.Numerics;
+using System.Linq;
+using Metrics = System.Collections.Generic.List<InsideDarkStudio.Clients.IDS.Models.MetricItem>;
 
 public class ICPTestRunner : MonoBehaviour
 {
     private const string PREF_KEY_PRIV = "icp_key_priv_b64";
     private const string PREF_KEY_PUB = "icp_key_pub_b64";
-    private const long GameId = 1792881739670308783;
 
-    private MyClientApiClient client;
+    private const bool IsLocal = true;
+
+    private const long MainnetGameId = 1793147210649960235;
+    private const long LocalGameId = 1793158400632908298;
+
+    private const long GameId = IsLocal ? LocalGameId: MainnetGameId;
+    private const string host = IsLocal ? "http://127.0.0.1:4943" : "https://ic0.app";
+
+    private IDSApiClient client;
 
     [Header("UI References")]
     [SerializeField] private TMP_InputField usernameInputField;
@@ -32,8 +41,10 @@ public class ICPTestRunner : MonoBehaviour
         Debug.Log("Principal ID local: " + identity.GetPrincipal().ToString());
 
         // 2. Creamos el cliente HTTP personalizado usando UnityWebRequest apuntando a Mainnet
-        Uri mainnetRoot = new Uri("https://ic0.app");
-        UnityHttpClient unityHttpClient = new UnityHttpClient(mainnetRoot);
+        Uri root = new Uri(host);
+        // Uri local = new Uri("http://127.0.0.1:4943");
+
+        UnityHttpClient unityHttpClient = new UnityHttpClient(root);
 
         // 3. Inicializamos el HttpAgent de ICP.NET
         HttpAgent agent = new HttpAgent(unityHttpClient, identity);
@@ -42,7 +53,7 @@ public class ICPTestRunner : MonoBehaviour
         Principal canisterId = Principal.FromText("x6dpd-yaaaa-aaaap-qu2qa-cai");
 
         // 5. Instanciamos el cliente tipado
-        client = new MyClientApiClient(agent, canisterId);
+        client = new IDSApiClient(agent, canisterId);
 
         // 6. Vinculamos el botón de la UI por código de forma limpia
         if (registerButton != null)
@@ -90,7 +101,7 @@ public class ICPTestRunner : MonoBehaviour
         return newIdentity;
     }
 
-    async Task CallWhoAmI(MyClientApiClient clientInstance)
+    async Task CallWhoAmI(IDSApiClient clientInstance)
     {
         try
         {
@@ -105,7 +116,7 @@ public class ICPTestRunner : MonoBehaviour
         }
     }
 
-    public async Task<SharedScore> GetPlayerScore()
+    public async Task<Metrics> GetPlayerScore()
     {
         if (client == null)
         {
@@ -117,12 +128,19 @@ public class ICPTestRunner : MonoBehaviour
 
         OptionalValue<Principal> userOpt = new OptionalValue<Principal>();
 
-        var score = await client.GetScore(userOpt, GameId); 
+        Metrics score = await client.GetMetrics(userOpt, GameId); 
 
         if (score != null)
         {
-            Debug.Log($"[ICP] Partidas jugadas: {score.GamesPlayed}");
-            Debug.Log($"[ICP] Puntos acumulados: {score.TotalPoints}");
+            Debug.Log($"[ICP] Recibidas {score.Count} métricas del canister:");
+            foreach (var metric in score)
+            {
+                Debug.Log($"  • {metric.Name}: {metric.Value}");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("[ICP] Se recibió una respuesta nula de métricas.");
         }
 
         return score;
@@ -180,7 +198,7 @@ public class ICPTestRunner : MonoBehaviour
         var response = await client.StartSessionGame(GameId);
         
         // Comprobar si el backend devolvió un error.
-        if (response.Tag == MyClientApiClient.StartSessionGameReturnArg0Tag.Err)
+        if (response.Tag == IDSApiClient.StartSessionGameReturnArg0Tag.Err)
         {
             throw new Exception($"Error del backend: {response.AsErr()}");
         }
@@ -224,23 +242,33 @@ public class ICPTestRunner : MonoBehaviour
         return ulong.Parse(seed.ToString());
     }
 
-    public async System.Threading.Tasks.Task ReportGameResult()
+    public async System.Threading.Tasks.Task ReportGameResult(int reachedLevel)
     {
-        Debug.Log("[ICP] Enviando resultado al canister...");
+        Debug.Log($"[ICP] Enviando resultado al canister (Nivel alcanzado: {reachedLevel})...");
 
+        // 1. Calcular puntos usando la curva progresiva
+        long calculatedPoints = SimonScoreCalculator.CalculatePoints(reachedLevel);
 
-        // Temporalmente vacíos: el backend todavía no los valida.
-        var payload = new System.Collections.Generic.List<byte>();
-        var proof = new System.Collections.Generic.List<byte>();
+        // 2. Construir la estructura de métricas con claves codificadas ("00" = Puntos, "01" = Nivel)
+        GameMetricPayload payloadData = new GameMetricPayload();
+        payloadData.metrics.Add(new MetricEntry("00", calculatedPoints)); 
+        // payloadData.metrics.Add(new MetricEntry("01", reachedLevel));     
+
+        // 3. Serializar a JSON y convertir a bytes (Blob)
+        string jsonPayload = JsonUtility.ToJson(payloadData);
+        byte[] payloadBytes = System.Text.Encoding.UTF8.GetBytes(jsonPayload);
+        var payloadList = new System.Collections.Generic.List<byte>(payloadBytes);
+
+        // Temporalmente vacío: el backend todavía no valida la prueba criptográfica.
+        var proofList = new System.Collections.Generic.List<byte>();
 
         var response = await client.EndGame(
             GameId,
-            payload,
-            proof
+            payloadList,
+            proofList
         );
 
-        if (response.Tag ==
-            MyClientApiClient.EndGameReturnArg0Tag.Err)
+        if (response.Tag == IDSApiClient.EndGameReturnArg0Tag.Err)
         {
             throw new System.Exception(
                 $"El canister rechazó el resultado: {response.AsErr()}"
@@ -248,8 +276,6 @@ public class ICPTestRunner : MonoBehaviour
         }
 
         var reward = response.AsOk();
-
-        Debug.Log($"[ICP] Recompensa procesada: {reward.Tag}");
+        Debug.Log("[ICP] ¡Partida de Simon reportada y procesada con éxito!");
     }
-
 }

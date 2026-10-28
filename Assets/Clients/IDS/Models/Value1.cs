@@ -1,10 +1,10 @@
 using EdjCase.ICP.Candid.Mapping;
-using My.Namespace.MyClient.Models;
+using InsideDarkStudio.Clients.IDS.Models;
 using System.Collections.Generic;
 using EdjCase.ICP.Candid.Models;
 using System;
 
-namespace My.Namespace.MyClient.Models
+namespace InsideDarkStudio.Clients.IDS.Models
 {
 	[Variant]
 	public class Value1

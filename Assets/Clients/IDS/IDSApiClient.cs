@@ -2,48 +2,49 @@ using EdjCase.ICP.Agent.Agents;
 using EdjCase.ICP.Candid.Models;
 using EdjCase.ICP.Candid;
 using System.Threading.Tasks;
-using My.Namespace.MyClient;
+using InsideDarkStudio.Clients.IDS;
 using EdjCase.ICP.Agent.Responses;
 using System.Collections.Generic;
 using EdjCase.ICP.Candid.Mapping;
 using System;
-using Metadata = System.Collections.Generic.List<My.Namespace.MyClient.Models.Entry>;
+using Metrics = System.Collections.Generic.List<InsideDarkStudio.Clients.IDS.Models.MetricItem>;
+using Metadata = System.Collections.Generic.List<InsideDarkStudio.Clients.IDS.Models.Entry>;
 using GameId = EdjCase.ICP.Candid.Models.UnboundedInt;
 
-namespace My.Namespace.MyClient
+namespace InsideDarkStudio.Clients.IDS
 {
-	public class MyClientApiClient
+	public class IDSApiClient
 	{
 		public IAgent Agent { get; }
 		public Principal CanisterId { get; }
 		public CandidConverter? Converter { get; }
 
-		public MyClientApiClient(IAgent agent, Principal canisterId, CandidConverter? converter = default)
+		public IDSApiClient(IAgent agent, Principal canisterId, CandidConverter? converter = default)
 		{
 			this.Agent = agent;
 			this.CanisterId = canisterId;
 			this.Converter = converter;
 		}
 
-		public async Task<MyClientApiClient.AddAdminReturnArg0> AddAdmin(Principal p)
+		public async Task<IDSApiClient.AddAdminReturnArg0> AddAdmin(Principal p)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(p, this.Converter));
 			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "addAdmin", arg);
-			return reply.ToObjects<MyClientApiClient.AddAdminReturnArg0>(this.Converter);
+			return reply.ToObjects<IDSApiClient.AddAdminReturnArg0>(this.Converter);
 		}
 
-		public async Task<UnboundedInt> AddGame(MyClientApiClient.AddGameArg0 arg0)
+		public async Task<UnboundedInt> AddGame(Models.GameArgs args)
 		{
-			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(arg0, this.Converter));
+			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(args, this.Converter));
 			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "addGame", arg);
 			return reply.ToObjects<UnboundedInt>(this.Converter);
 		}
 
-		public async Task<MyClientApiClient.AddSuperAdminReturnArg0> AddSuperAdmin(Principal p)
+		public async Task<IDSApiClient.AddSuperAdminReturnArg0> AddSuperAdmin(Principal p)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(p, this.Converter));
 			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "addSuperAdmin", arg);
-			return reply.ToObjects<MyClientApiClient.AddSuperAdminReturnArg0>(this.Converter);
+			return reply.ToObjects<IDSApiClient.AddSuperAdminReturnArg0>(this.Converter);
 		}
 
 		public async Task<UnboundedUInt> Balance()
@@ -61,11 +62,11 @@ namespace My.Namespace.MyClient
 			return reply.ToObjects<Models.UserResult>(this.Converter);
 		}
 
-		public async Task<MyClientApiClient.EndGameReturnArg0> EndGame(UnboundedInt gameId, List<byte> payload, List<byte> proof)
+		public async Task<IDSApiClient.EndGameReturnArg0> EndGame(UnboundedInt gameId, List<byte> payload, List<byte> proof)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(gameId, this.Converter), CandidTypedValue.FromObject(payload, this.Converter), CandidTypedValue.FromObject(proof, this.Converter));
 			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "endGame", arg);
-			return reply.ToObjects<MyClientApiClient.EndGameReturnArg0>(this.Converter);
+			return reply.ToObjects<IDSApiClient.EndGameReturnArg0>(this.Converter);
 		}
 
 		public async Task<List<Models.User>> GetAdmins()
@@ -84,11 +85,12 @@ namespace My.Namespace.MyClient
 			return reply.ToObjects<List<Models.Game>>(this.Converter);
 		}
 
-		public async Task<Models.SharedScore> GetScore(OptionalValue<Principal> u, GameId gameId)
+		public async Task<Metrics> GetMetrics(OptionalValue<Principal> u, GameId gameId)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(u, this.Converter), CandidTypedValue.FromObject(gameId, this.Converter));
-			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "getScore", arg);
-			return reply.ToObjects<Models.SharedScore>(this.Converter);
+			QueryResponse response = await this.Agent.QueryAsync(this.CanisterId, "getMetrics", arg);
+			CandidArg reply = response.ThrowOrGetReply();
+			return reply.ToObjects<Metrics>(this.Converter);
 		}
 
 		public async Task<List<Models.IdentityResult>> GetSuperAdmins()
@@ -99,12 +101,20 @@ namespace My.Namespace.MyClient
 			return reply.ToObjects<List<Models.IdentityResult>>(this.Converter);
 		}
 
-		public async Task<Models.PaginatedUsers> GetUsers(MyClientApiClient.GetUsersArg0 arg0)
+		public async Task<Models.PaginatedUsers> GetUsers(IDSApiClient.GetUsersArg0 arg0)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(arg0, this.Converter));
 			QueryResponse response = await this.Agent.QueryAsync(this.CanisterId, "getUsers", arg);
 			CandidArg reply = response.ThrowOrGetReply();
 			return reply.ToObjects<Models.PaginatedUsers>(this.Converter);
+		}
+
+		public async Task<Metadata> IdsMetrics()
+		{
+			CandidArg arg = CandidArg.FromCandid();
+			QueryResponse response = await this.Agent.QueryAsync(this.CanisterId, "idsMetrics", arg);
+			CandidArg reply = response.ThrowOrGetReply();
+			return reply.ToObjects<Metadata>(this.Converter);
 		}
 
 		public async Task<OptionalValue<Models.UserType>> Login()
@@ -115,26 +125,18 @@ namespace My.Namespace.MyClient
 			return reply.ToObjects<OptionalValue<Models.UserType>>(this.Converter);
 		}
 
-		public async Task<Metadata> Metrics()
-		{
-			CandidArg arg = CandidArg.FromCandid();
-			QueryResponse response = await this.Agent.QueryAsync(this.CanisterId, "metrics", arg);
-			CandidArg reply = response.ThrowOrGetReply();
-			return reply.ToObjects<Metadata>(this.Converter);
-		}
-
-		public async Task<MyClientApiClient.RemoveAdminReturnArg0> RemoveAdmin(Principal p)
+		public async Task<IDSApiClient.RemoveAdminReturnArg0> RemoveAdmin(Principal p)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(p, this.Converter));
 			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "removeAdmin", arg);
-			return reply.ToObjects<MyClientApiClient.RemoveAdminReturnArg0>(this.Converter);
+			return reply.ToObjects<IDSApiClient.RemoveAdminReturnArg0>(this.Converter);
 		}
 
-		public async Task<MyClientApiClient.RemoveSuperAdminReturnArg0> RemoveSuperAdmin(Principal p)
+		public async Task<IDSApiClient.RemoveSuperAdminReturnArg0> RemoveSuperAdmin(Principal p)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(p, this.Converter));
 			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "removeSuperAdmin", arg);
-			return reply.ToObjects<MyClientApiClient.RemoveSuperAdminReturnArg0>(this.Converter);
+			return reply.ToObjects<IDSApiClient.RemoveSuperAdminReturnArg0>(this.Converter);
 		}
 
 		public async Task<Models.UserResult> RenameUser(string name)
@@ -157,11 +159,11 @@ namespace My.Namespace.MyClient
 			return reply.ToObjects<Models.UserResult>(this.Converter);
 		}
 
-		public async Task<MyClientApiClient.StartSessionGameReturnArg0> StartSessionGame(UnboundedInt gameId)
+		public async Task<IDSApiClient.StartSessionGameReturnArg0> StartSessionGame(UnboundedInt gameId)
 		{
 			CandidArg arg = CandidArg.FromCandid(CandidTypedValue.FromObject(gameId, this.Converter));
 			CandidArg reply = await this.Agent.CallAsync(this.CanisterId, "startSessionGame", arg);
-			return reply.ToObjects<MyClientApiClient.StartSessionGameReturnArg0>(this.Converter);
+			return reply.ToObjects<IDSApiClient.StartSessionGameReturnArg0>(this.Converter);
 		}
 
 		public async Task<Models.UserResult> UpdateAvatar(OptionalValue<List<byte>> avatar)
@@ -183,12 +185,12 @@ namespace My.Namespace.MyClient
 		public class AddAdminReturnArg0
 		{
 			[VariantTagProperty]
-			public MyClientApiClient.AddAdminReturnArg0Tag Tag { get; set; }
+			public IDSApiClient.AddAdminReturnArg0Tag Tag { get; set; }
 
 			[VariantValueProperty]
 			public object? Value { get; set; }
 
-			public AddAdminReturnArg0(MyClientApiClient.AddAdminReturnArg0Tag tag, object? value)
+			public AddAdminReturnArg0(IDSApiClient.AddAdminReturnArg0Tag tag, object? value)
 			{
 				this.Tag = tag;
 				this.Value = value;
@@ -198,23 +200,23 @@ namespace My.Namespace.MyClient
 			{
 			}
 
-			public static MyClientApiClient.AddAdminReturnArg0 Err(string info)
+			public static IDSApiClient.AddAdminReturnArg0 Err(string info)
 			{
-				return new MyClientApiClient.AddAdminReturnArg0(MyClientApiClient.AddAdminReturnArg0Tag.Err, info);
+				return new IDSApiClient.AddAdminReturnArg0(IDSApiClient.AddAdminReturnArg0Tag.Err, info);
 			}
 
-			public static MyClientApiClient.AddAdminReturnArg0 Ok()
+			public static IDSApiClient.AddAdminReturnArg0 Ok()
 			{
-				return new MyClientApiClient.AddAdminReturnArg0(MyClientApiClient.AddAdminReturnArg0Tag.Ok, null);
+				return new IDSApiClient.AddAdminReturnArg0(IDSApiClient.AddAdminReturnArg0Tag.Ok, null);
 			}
 
 			public string AsErr()
 			{
-				this.ValidateTag(MyClientApiClient.AddAdminReturnArg0Tag.Err);
+				this.ValidateTag(IDSApiClient.AddAdminReturnArg0Tag.Err);
 				return (string)this.Value!;
 			}
 
-			private void ValidateTag(MyClientApiClient.AddAdminReturnArg0Tag tag)
+			private void ValidateTag(IDSApiClient.AddAdminReturnArg0Tag tag)
 			{
 				if (!this.Tag.Equals(tag))
 				{
@@ -229,43 +231,16 @@ namespace My.Namespace.MyClient
 			Ok
 		}
 
-		public class AddGameArg0
-		{
-			[CandidName("config")]
-			public Metadata Config { get; set; }
-
-			[CandidName("coverImg")]
-			public List<byte> CoverImg { get; set; }
-
-			[CandidName("description")]
-			public string Description { get; set; }
-
-			[CandidName("name")]
-			public string Name { get; set; }
-
-			public AddGameArg0(Metadata config, List<byte> coverImg, string description, string name)
-			{
-				this.Config = config;
-				this.CoverImg = coverImg;
-				this.Description = description;
-				this.Name = name;
-			}
-
-			public AddGameArg0()
-			{
-			}
-		}
-
 		[Variant]
 		public class AddSuperAdminReturnArg0
 		{
 			[VariantTagProperty]
-			public MyClientApiClient.AddSuperAdminReturnArg0Tag Tag { get; set; }
+			public IDSApiClient.AddSuperAdminReturnArg0Tag Tag { get; set; }
 
 			[VariantValueProperty]
 			public object? Value { get; set; }
 
-			public AddSuperAdminReturnArg0(MyClientApiClient.AddSuperAdminReturnArg0Tag tag, object? value)
+			public AddSuperAdminReturnArg0(IDSApiClient.AddSuperAdminReturnArg0Tag tag, object? value)
 			{
 				this.Tag = tag;
 				this.Value = value;
@@ -275,23 +250,23 @@ namespace My.Namespace.MyClient
 			{
 			}
 
-			public static MyClientApiClient.AddSuperAdminReturnArg0 Err(string info)
+			public static IDSApiClient.AddSuperAdminReturnArg0 Err(string info)
 			{
-				return new MyClientApiClient.AddSuperAdminReturnArg0(MyClientApiClient.AddSuperAdminReturnArg0Tag.Err, info);
+				return new IDSApiClient.AddSuperAdminReturnArg0(IDSApiClient.AddSuperAdminReturnArg0Tag.Err, info);
 			}
 
-			public static MyClientApiClient.AddSuperAdminReturnArg0 Ok()
+			public static IDSApiClient.AddSuperAdminReturnArg0 Ok()
 			{
-				return new MyClientApiClient.AddSuperAdminReturnArg0(MyClientApiClient.AddSuperAdminReturnArg0Tag.Ok, null);
+				return new IDSApiClient.AddSuperAdminReturnArg0(IDSApiClient.AddSuperAdminReturnArg0Tag.Ok, null);
 			}
 
 			public string AsErr()
 			{
-				this.ValidateTag(MyClientApiClient.AddSuperAdminReturnArg0Tag.Err);
+				this.ValidateTag(IDSApiClient.AddSuperAdminReturnArg0Tag.Err);
 				return (string)this.Value!;
 			}
 
-			private void ValidateTag(MyClientApiClient.AddSuperAdminReturnArg0Tag tag)
+			private void ValidateTag(IDSApiClient.AddSuperAdminReturnArg0Tag tag)
 			{
 				if (!this.Tag.Equals(tag))
 				{
@@ -310,12 +285,12 @@ namespace My.Namespace.MyClient
 		public class EndGameReturnArg0
 		{
 			[VariantTagProperty]
-			public MyClientApiClient.EndGameReturnArg0Tag Tag { get; set; }
+			public IDSApiClient.EndGameReturnArg0Tag Tag { get; set; }
 
 			[VariantValueProperty]
 			public object? Value { get; set; }
 
-			public EndGameReturnArg0(MyClientApiClient.EndGameReturnArg0Tag tag, object? value)
+			public EndGameReturnArg0(IDSApiClient.EndGameReturnArg0Tag tag, object? value)
 			{
 				this.Tag = tag;
 				this.Value = value;
@@ -325,29 +300,29 @@ namespace My.Namespace.MyClient
 			{
 			}
 
-			public static MyClientApiClient.EndGameReturnArg0 Err(string info)
+			public static IDSApiClient.EndGameReturnArg0 Err(string info)
 			{
-				return new MyClientApiClient.EndGameReturnArg0(MyClientApiClient.EndGameReturnArg0Tag.Err, info);
+				return new IDSApiClient.EndGameReturnArg0(IDSApiClient.EndGameReturnArg0Tag.Err, info);
 			}
 
-			public static MyClientApiClient.EndGameReturnArg0 Ok(Models.Reward info)
+			public static IDSApiClient.EndGameReturnArg0 Ok(Metrics info)
 			{
-				return new MyClientApiClient.EndGameReturnArg0(MyClientApiClient.EndGameReturnArg0Tag.Ok, info);
+				return new IDSApiClient.EndGameReturnArg0(IDSApiClient.EndGameReturnArg0Tag.Ok, info);
 			}
 
 			public string AsErr()
 			{
-				this.ValidateTag(MyClientApiClient.EndGameReturnArg0Tag.Err);
+				this.ValidateTag(IDSApiClient.EndGameReturnArg0Tag.Err);
 				return (string)this.Value!;
 			}
 
-			public Models.Reward AsOk()
+			public Metrics AsOk()
 			{
-				this.ValidateTag(MyClientApiClient.EndGameReturnArg0Tag.Ok);
-				return (Models.Reward)this.Value!;
+				this.ValidateTag(IDSApiClient.EndGameReturnArg0Tag.Ok);
+				return (Metrics)this.Value!;
 			}
 
-			private void ValidateTag(MyClientApiClient.EndGameReturnArg0Tag tag)
+			private void ValidateTag(IDSApiClient.EndGameReturnArg0Tag tag)
 			{
 				if (!this.Tag.Equals(tag))
 				{
@@ -385,12 +360,12 @@ namespace My.Namespace.MyClient
 		public class RemoveAdminReturnArg0
 		{
 			[VariantTagProperty]
-			public MyClientApiClient.RemoveAdminReturnArg0Tag Tag { get; set; }
+			public IDSApiClient.RemoveAdminReturnArg0Tag Tag { get; set; }
 
 			[VariantValueProperty]
 			public object? Value { get; set; }
 
-			public RemoveAdminReturnArg0(MyClientApiClient.RemoveAdminReturnArg0Tag tag, object? value)
+			public RemoveAdminReturnArg0(IDSApiClient.RemoveAdminReturnArg0Tag tag, object? value)
 			{
 				this.Tag = tag;
 				this.Value = value;
@@ -400,23 +375,23 @@ namespace My.Namespace.MyClient
 			{
 			}
 
-			public static MyClientApiClient.RemoveAdminReturnArg0 Err(string info)
+			public static IDSApiClient.RemoveAdminReturnArg0 Err(string info)
 			{
-				return new MyClientApiClient.RemoveAdminReturnArg0(MyClientApiClient.RemoveAdminReturnArg0Tag.Err, info);
+				return new IDSApiClient.RemoveAdminReturnArg0(IDSApiClient.RemoveAdminReturnArg0Tag.Err, info);
 			}
 
-			public static MyClientApiClient.RemoveAdminReturnArg0 Ok()
+			public static IDSApiClient.RemoveAdminReturnArg0 Ok()
 			{
-				return new MyClientApiClient.RemoveAdminReturnArg0(MyClientApiClient.RemoveAdminReturnArg0Tag.Ok, null);
+				return new IDSApiClient.RemoveAdminReturnArg0(IDSApiClient.RemoveAdminReturnArg0Tag.Ok, null);
 			}
 
 			public string AsErr()
 			{
-				this.ValidateTag(MyClientApiClient.RemoveAdminReturnArg0Tag.Err);
+				this.ValidateTag(IDSApiClient.RemoveAdminReturnArg0Tag.Err);
 				return (string)this.Value!;
 			}
 
-			private void ValidateTag(MyClientApiClient.RemoveAdminReturnArg0Tag tag)
+			private void ValidateTag(IDSApiClient.RemoveAdminReturnArg0Tag tag)
 			{
 				if (!this.Tag.Equals(tag))
 				{
@@ -435,12 +410,12 @@ namespace My.Namespace.MyClient
 		public class RemoveSuperAdminReturnArg0
 		{
 			[VariantTagProperty]
-			public MyClientApiClient.RemoveSuperAdminReturnArg0Tag Tag { get; set; }
+			public IDSApiClient.RemoveSuperAdminReturnArg0Tag Tag { get; set; }
 
 			[VariantValueProperty]
 			public object? Value { get; set; }
 
-			public RemoveSuperAdminReturnArg0(MyClientApiClient.RemoveSuperAdminReturnArg0Tag tag, object? value)
+			public RemoveSuperAdminReturnArg0(IDSApiClient.RemoveSuperAdminReturnArg0Tag tag, object? value)
 			{
 				this.Tag = tag;
 				this.Value = value;
@@ -450,23 +425,23 @@ namespace My.Namespace.MyClient
 			{
 			}
 
-			public static MyClientApiClient.RemoveSuperAdminReturnArg0 Err(string info)
+			public static IDSApiClient.RemoveSuperAdminReturnArg0 Err(string info)
 			{
-				return new MyClientApiClient.RemoveSuperAdminReturnArg0(MyClientApiClient.RemoveSuperAdminReturnArg0Tag.Err, info);
+				return new IDSApiClient.RemoveSuperAdminReturnArg0(IDSApiClient.RemoveSuperAdminReturnArg0Tag.Err, info);
 			}
 
-			public static MyClientApiClient.RemoveSuperAdminReturnArg0 Ok()
+			public static IDSApiClient.RemoveSuperAdminReturnArg0 Ok()
 			{
-				return new MyClientApiClient.RemoveSuperAdminReturnArg0(MyClientApiClient.RemoveSuperAdminReturnArg0Tag.Ok, null);
+				return new IDSApiClient.RemoveSuperAdminReturnArg0(IDSApiClient.RemoveSuperAdminReturnArg0Tag.Ok, null);
 			}
 
 			public string AsErr()
 			{
-				this.ValidateTag(MyClientApiClient.RemoveSuperAdminReturnArg0Tag.Err);
+				this.ValidateTag(IDSApiClient.RemoveSuperAdminReturnArg0Tag.Err);
 				return (string)this.Value!;
 			}
 
-			private void ValidateTag(MyClientApiClient.RemoveSuperAdminReturnArg0Tag tag)
+			private void ValidateTag(IDSApiClient.RemoveSuperAdminReturnArg0Tag tag)
 			{
 				if (!this.Tag.Equals(tag))
 				{
@@ -485,12 +460,12 @@ namespace My.Namespace.MyClient
 		public class StartSessionGameReturnArg0
 		{
 			[VariantTagProperty]
-			public MyClientApiClient.StartSessionGameReturnArg0Tag Tag { get; set; }
+			public IDSApiClient.StartSessionGameReturnArg0Tag Tag { get; set; }
 
 			[VariantValueProperty]
 			public object? Value { get; set; }
 
-			public StartSessionGameReturnArg0(MyClientApiClient.StartSessionGameReturnArg0Tag tag, object? value)
+			public StartSessionGameReturnArg0(IDSApiClient.StartSessionGameReturnArg0Tag tag, object? value)
 			{
 				this.Tag = tag;
 				this.Value = value;
@@ -500,29 +475,29 @@ namespace My.Namespace.MyClient
 			{
 			}
 
-			public static MyClientApiClient.StartSessionGameReturnArg0 Err(string info)
+			public static IDSApiClient.StartSessionGameReturnArg0 Err(string info)
 			{
-				return new MyClientApiClient.StartSessionGameReturnArg0(MyClientApiClient.StartSessionGameReturnArg0Tag.Err, info);
+				return new IDSApiClient.StartSessionGameReturnArg0(IDSApiClient.StartSessionGameReturnArg0Tag.Err, info);
 			}
 
-			public static MyClientApiClient.StartSessionGameReturnArg0 Ok(MyClientApiClient.StartSessionGameReturnArg0.OkInfo info)
+			public static IDSApiClient.StartSessionGameReturnArg0 Ok(IDSApiClient.StartSessionGameReturnArg0.OkInfo info)
 			{
-				return new MyClientApiClient.StartSessionGameReturnArg0(MyClientApiClient.StartSessionGameReturnArg0Tag.Ok, info);
+				return new IDSApiClient.StartSessionGameReturnArg0(IDSApiClient.StartSessionGameReturnArg0Tag.Ok, info);
 			}
 
 			public string AsErr()
 			{
-				this.ValidateTag(MyClientApiClient.StartSessionGameReturnArg0Tag.Err);
+				this.ValidateTag(IDSApiClient.StartSessionGameReturnArg0Tag.Err);
 				return (string)this.Value!;
 			}
 
-			public MyClientApiClient.StartSessionGameReturnArg0.OkInfo AsOk()
+			public IDSApiClient.StartSessionGameReturnArg0.OkInfo AsOk()
 			{
-				this.ValidateTag(MyClientApiClient.StartSessionGameReturnArg0Tag.Ok);
-				return (MyClientApiClient.StartSessionGameReturnArg0.OkInfo)this.Value!;
+				this.ValidateTag(IDSApiClient.StartSessionGameReturnArg0Tag.Ok);
+				return (IDSApiClient.StartSessionGameReturnArg0.OkInfo)this.Value!;
 			}
 
-			private void ValidateTag(MyClientApiClient.StartSessionGameReturnArg0Tag tag)
+			private void ValidateTag(IDSApiClient.StartSessionGameReturnArg0Tag tag)
 			{
 				if (!this.Tag.Equals(tag))
 				{

@@ -1,11 +1,14 @@
 using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
-using My.Namespace.MyClient.Models;
+using InsideDarkStudio.Clients.IDS.Models;
 using UnityEngine.UI;
+using Metrics = System.Collections.Generic.List<InsideDarkStudio.Clients.IDS.Models.MetricItem>;
+
 
 public class SimonGameController : MonoBehaviour
 {
@@ -138,41 +141,44 @@ public class SimonGameController : MonoBehaviour
     }
 
     public async Task LoadPlayerScore()
-{
-    if (icpService == null)
     {
-        Debug.LogError("[SIMON] No se asignó la referencia de ICPTestRunner.");
-        return;
-    }
-
-    try
-    {
-        // Llamamos al servicio y hacemos un cast seguro a SharedScore
-        var rawScore = await icpService.GetPlayerScore();
-        
-        // Hacemos el cast explícito para que C# reconozca las propiedades sin requerir C# Runtime Binder
-        SharedScore score = rawScore as SharedScore;
-
-        if (score == null || this == null) return;
-
-        // Pintamos los datos en los textos de TextMeshPro
-        if (pointsText != null)
+        if (icpService == null)
         {
-            pointsText.text = $"Puntos: {score.TotalPoints}";
+            Debug.LogError("[SIMON] No se asignó la referencia de ICPTestRunner.");
+            return;
         }
 
-        if (gamesPlayedText != null)
+        try
         {
-            gamesPlayedText.text = $"Partidas: {score.GamesPlayed}";
-        }
+            // Obtenemos la lista de métricas directamente desde el servicio
+            Metrics metrics = await icpService.GetPlayerScore();
 
-        Debug.Log("[SIMON] ¡Textos de interfaz actualizados con éxito desde la blockchain!");
+            if (metrics == null || this == null) return;
+
+            // Buscamos las métricas dinámicamente por su nombre usando LINQ
+            var pointsMetric = metrics.FirstOrDefault(m => m.Name == "Ponits" || m.Name == "Points" || m.Name == "totalPoints");
+            var gamesMetric = metrics.FirstOrDefault(m => m.Name == "Kills"); // Si quieres mostrar las Kills también
+
+            // Pintamos los datos en los textos de TextMeshPro si los componentes y las métricas existen
+            if (pointsText != null)
+            {
+                long points = pointsMetric != null ? (long)pointsMetric.Value.ToBigInteger() : 0;
+                pointsText.text = $"Puntos: {points}";
+            }
+
+            if (gamesPlayedText != null)
+            {
+                long games = gamesMetric != null ? (long)gamesMetric.Value.ToBigInteger() : 0;
+                gamesPlayedText.text = $"Partidas: {games}";
+            }
+
+            Debug.Log("[SIMON] ¡Textos de interfaz actualizados con éxito desde la blockchain!");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[SIMON] Error al actualizar la interfaz: {ex.Message}");
+        }
     }
-    catch (Exception ex)
-    {
-        Debug.LogError($"[SIMON] Error al actualizar la interfaz: {ex.Message}");
-    }
-}
 
     public async Task StartGame()
     {
@@ -448,9 +454,13 @@ public class SimonGameController : MonoBehaviour
 
         try
         {
-            await icpService.ReportGameResult();
+            // Pasamos el nivel alcanzado al servicio de ICP
+            await icpService.ReportGameResult(reachedLevel);
 
             Debug.Log("[SIMON] Reporte enviado correctamente.");
+            
+            // Opcional: Actualizar los textos de la UI inmediatamente después de reportar
+            await icpService.GetPlayerScore();
         }
         catch (System.Exception ex)
         {
@@ -469,9 +479,6 @@ public class SimonGameController : MonoBehaviour
                 button.interactable = interactable;
         }
     }
-
-    
-
     
     
     private void SetColorHighlighted(int index, bool highlighted)

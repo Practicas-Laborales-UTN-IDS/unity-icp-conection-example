@@ -1,11 +1,11 @@
 using EdjCase.ICP.Candid.Mapping;
 using EdjCase.ICP.Candid.Models;
 using System.Collections.Generic;
-using Metadata = System.Collections.Generic.List<My.Namespace.MyClient.Models.Entry>;
+using Metadata = System.Collections.Generic.List<InsideDarkStudio.Clients.IDS.Models.Entry>;
 
-namespace My.Namespace.MyClient.Models
+namespace InsideDarkStudio.Clients.IDS.Models
 {
-	public class UserType
+	public class User
 	{
 		[CandidName("avatar")]
 		public OptionalValue<List<byte>> Avatar { get; set; }
@@ -25,7 +25,7 @@ namespace My.Namespace.MyClient.Models
 		[CandidName("registrationDate")]
 		public UnboundedInt RegistrationDate { get; set; }
 
-		public UserType(OptionalValue<List<byte>> avatar, OptionalValue<string> email, Metadata extraData, string name, Principal principal, UnboundedInt registrationDate)
+		public User(OptionalValue<List<byte>> avatar, OptionalValue<string> email, Metadata extraData, string name, Principal principal, UnboundedInt registrationDate)
 		{
 			this.Avatar = avatar;
 			this.Email = email;
@@ -35,7 +35,7 @@ namespace My.Namespace.MyClient.Models
 			this.RegistrationDate = registrationDate;
 		}
 
-		public UserType()
+		public User()
 		{
 		}
 	}

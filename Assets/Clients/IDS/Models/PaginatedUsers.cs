@@ -1,8 +1,8 @@
 using EdjCase.ICP.Candid.Mapping;
 using System.Collections.Generic;
-using My.Namespace.MyClient.Models;
+using InsideDarkStudio.Clients.IDS.Models;
 
-namespace My.Namespace.MyClient.Models
+namespace InsideDarkStudio.Clients.IDS.Models
 {
 	public class PaginatedUsers
 	{

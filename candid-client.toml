@@ -1,5 +1,5 @@
 # Base namespace for all generated files
-namespace = "My.Namespace"
+namespace = "InsideDarkStudio.Clients"
 
 # Will create a subfolder within this directory with all the files
 output-directory = "./Assets/Clients"
@@ -13,7 +13,7 @@ output-directory = "./Assets/Clients"
 
 [[clients]]
 # Defines name folder and api client class name
-name = "MyClient"
+name = "IDS"
 
 # Get definition from a *.did file
 type = "file"

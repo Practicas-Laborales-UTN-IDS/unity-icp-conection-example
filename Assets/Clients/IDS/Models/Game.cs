@@ -1,15 +1,12 @@
 using EdjCase.ICP.Candid.Mapping;
 using System.Collections.Generic;
-using Metadata = System.Collections.Generic.List<My.Namespace.MyClient.Models.Entry>;
+using Metadata = System.Collections.Generic.List<InsideDarkStudio.Clients.IDS.Models.Entry>;
 using GameId = EdjCase.ICP.Candid.Models.UnboundedInt;
 
-namespace My.Namespace.MyClient.Models
+namespace InsideDarkStudio.Clients.IDS.Models
 {
 	public class Game
 	{
-		[CandidName("config")]
-		public Metadata Config { get; set; }
-
 		[CandidName("coverImg")]
 		public List<byte> CoverImg { get; set; }
 
@@ -19,15 +16,18 @@ namespace My.Namespace.MyClient.Models
 		[CandidName("id")]
 		public GameId Id { get; set; }
 
+		[CandidName("metadata")]
+		public Metadata Metadata { get; set; }
+
 		[CandidName("name")]
 		public string Name { get; set; }
 
-		public Game(Metadata config, List<byte> coverImg, string description, GameId id, string name)
+		public Game(List<byte> coverImg, string description, GameId id, Metadata metadata, string name)
 		{
-			this.Config = config;
 			this.CoverImg = coverImg;
 			this.Description = description;
 			this.Id = id;
+			this.Metadata = metadata;
 			this.Name = name;
 		}
 
