@@ -19,8 +19,8 @@ public class ICPTestRunner : MonoBehaviour
 
     private const bool IsLocal = true;
 
-    private const long MainnetGameId = 1793147210649960235;
-    private const long LocalGameId = 1793158400632908298;
+    private const long MainnetGameId = 1793251395532072565;
+    private const long LocalGameId = 1793221351804533437;
 
     private const long GameId = IsLocal ? LocalGameId: MainnetGameId;
     private const string host = IsLocal ? "http://127.0.0.1:4943" : "https://ic0.app";
