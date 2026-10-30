@@ -19,11 +19,12 @@ public class ICPTestRunner : MonoBehaviour
 
     private const bool IsLocal = true;
 
-    private const long MainnetGameId = 1793251395532072565;
-    private const long LocalGameId = 1793221351804533437;
+    private const long MainnetGameId = 1793393496515730542;
+    private const long LocalGameId = 1793394058115953258;
 
     private const long GameId = IsLocal ? LocalGameId: MainnetGameId;
     private const string host = IsLocal ? "http://127.0.0.1:4943" : "https://ic0.app";
+    private const string canisterText = "x6dpd-yaaaa-aaaap-qu2qa-cai";
 
     private IDSApiClient client;
 
@@ -50,7 +51,7 @@ public class ICPTestRunner : MonoBehaviour
         HttpAgent agent = new HttpAgent(unityHttpClient, identity);
 
         // 4. Canister ID de Mainnet
-        Principal canisterId = Principal.FromText("x6dpd-yaaaa-aaaap-qu2qa-cai");
+        Principal canisterId = Principal.FromText(canisterText);
 
         // 5. Instanciamos el cliente tipado
         client = new IDSApiClient(agent, canisterId);
@@ -128,22 +129,49 @@ public class ICPTestRunner : MonoBehaviour
 
         OptionalValue<Principal> userOpt = new OptionalValue<Principal>();
 
-        Metrics score = await client.GetMetrics(userOpt, GameId); 
+        Metrics score = await client.GetMetrics(userOpt, GameId);
 
-        if (score != null)
+        if (score != null && score.Count > 0)
         {
             Debug.Log($"[ICP] Recibidas {score.Count} métricas del canister:");
-            foreach (var metric in score)
+            
+            foreach (MetricItem metric in score)
             {
-                Debug.Log($"  • {metric.Name}: {metric.Value}");
+                // 1. Acceder al nombre de la métrica
+                string metricName = metric.Name; 
+                
+                // 2. Extraer el valor numérico según la variante
+                long numericValue = ExtractMetricValue(metric.Value);
+
+                Debug.Log($"  • {metricName} [{metric.Value.Tag}]: {numericValue}");
             }
         }
         else
         {
-            Debug.LogWarning("[ICP] Se recibió una respuesta nula de métricas.");
+            Debug.LogWarning("[ICP] Se recibió una respuesta nula o vacía de métricas.");
         }
 
         return score;
+    }
+
+    // Método Helper para desempaquetar la variante MetricKind en C#
+    private long ExtractMetricValue(MetricKind kind)
+    {
+        if (kind == null) return 0;
+
+        switch (kind.Tag)
+        {
+            case MetricKindTag.Sum:
+                return (long)kind.AsSum();
+            case MetricKindTag.Max:
+                return (long)kind.AsMax();
+            case MetricKindTag.Min:
+                return (long)kind.AsMin();
+            case MetricKindTag.Replace:
+                return (long)kind.AsReplace();
+            default:
+                return 0;
+        }
     }
 
     private void OnRegisterButtonClicked()
@@ -249,14 +277,15 @@ public class ICPTestRunner : MonoBehaviour
         // 1. Calcular puntos usando la curva progresiva
         long calculatedPoints = SimonScoreCalculator.CalculatePoints(reachedLevel);
 
-        // 2. Construir la estructura de métricas con claves codificadas ("00" = Puntos, "01" = Nivel)
-        GameMetricPayload payloadData = new GameMetricPayload();
-        payloadData.metrics.Add(new MetricEntry("00", calculatedPoints)); 
-        // payloadData.metrics.Add(new MetricEntry("01", reachedLevel));     
+        // 2. Construir el payload plano compacto (formato: nombre,operador,valor)
+        // "00" = Puntos (Operador '+' -> Acumulativo / Suma)
+        // "01" = Nivel alcanzado (Operador '>' -> Máximo histórico)
+        // string payloadString = $"00,+,\n01,>,{reachedLevel}";
+        // Nota: Asegúrate de interpolar bien los valores de las variables:
+        string payloadString = $"00,+," + calculatedPoints + "\n01,>," + reachedLevel;
 
-        // 3. Serializar a JSON y convertir a bytes (Blob)
-        string jsonPayload = JsonUtility.ToJson(payloadData);
-        byte[] payloadBytes = System.Text.Encoding.UTF8.GetBytes(jsonPayload);
+        // 3. Convertir el texto plano directamente a bytes (Blob)
+        byte[] payloadBytes = System.Text.Encoding.UTF8.GetBytes(payloadString);
         var payloadList = new System.Collections.Generic.List<byte>(payloadBytes);
 
         // Temporalmente vacío: el backend todavía no valida la prueba criptográfica.

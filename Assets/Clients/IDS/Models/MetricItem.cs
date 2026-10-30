@@ -1,5 +1,5 @@
 using EdjCase.ICP.Candid.Mapping;
-using EdjCase.ICP.Candid.Models;
+using InsideDarkStudio.Clients.IDS.Models;
 
 namespace InsideDarkStudio.Clients.IDS.Models
 {
@@ -9,9 +9,9 @@ namespace InsideDarkStudio.Clients.IDS.Models
 		public string Name { get; set; }
 
 		[CandidName("value")]
-		public UnboundedInt Value { get; set; }
+		public MetricKind Value { get; set; }
 
-		public MetricItem(string name, UnboundedInt value)
+		public MetricItem(string name, MetricKind value)
 		{
 			this.Name = name;
 			this.Value = value;

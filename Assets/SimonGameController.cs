@@ -156,19 +156,28 @@ public class SimonGameController : MonoBehaviour
             if (metrics == null || this == null) return;
 
             // Buscamos las métricas dinámicamente por su nombre usando LINQ
-            var pointsMetric = metrics.FirstOrDefault(m => m.Name == "Ponits" || m.Name == "Points" || m.Name == "totalPoints");
-            var gamesMetric = metrics.FirstOrDefault(m => m.Name == "Kills"); // Si quieres mostrar las Kills también
+            var pointsMetric = metrics.FirstOrDefault(m => m.Name == "00");
+            var levelMetric  = metrics.FirstOrDefault(m => m.Name == "01");
+            var gamesPlayed  = metrics.FirstOrDefault(m => m.Name == "__sys_total_matches__");
 
-            // Pintamos los datos en los textos de TextMeshPro si los componentes y las métricas existen
+            // Pintamos los puntos (Métrica "00")
             if (pointsText != null)
             {
-                long points = pointsMetric != null ? (long)pointsMetric.Value.ToBigInteger() : 0;
+                long points = pointsMetric != null ? ExtractMetricValue(pointsMetric.Value) : 0;
                 pointsText.text = $"Puntos: {points}";
             }
 
+            // Pintamos el nivel alcanzado (Métrica "01") - Preparado para cuando agregues su TextLabel
+            if (levelText != null)
+            {
+                long level = levelMetric != null ? ExtractMetricValue(levelMetric.Value) : 0;
+                levelText.text = $"Nivel Max: {level}";
+            }
+
+            // Pintamos el total de partidas (__sys_total_matches__)
             if (gamesPlayedText != null)
             {
-                long games = gamesMetric != null ? (long)gamesMetric.Value.ToBigInteger() : 0;
+                long games = gamesPlayed != null ? ExtractMetricValue(gamesPlayed.Value) : 0;
                 gamesPlayedText.text = $"Partidas: {games}";
             }
 
@@ -177,6 +186,26 @@ public class SimonGameController : MonoBehaviour
         catch (Exception ex)
         {
             Debug.LogError($"[SIMON] Error al actualizar la interfaz: {ex.Message}");
+        }
+    }
+
+    // Helper robusto para extraer el número sin importar si vino como Sum, Max, Min o Replace
+    private long ExtractMetricValue(MetricKind kind)
+    {
+        if (kind == null) return 0;
+
+        switch (kind.Tag)
+        {
+            case MetricKindTag.Sum:
+                return (long)kind.AsSum();
+            case MetricKindTag.Max:
+                return (long)kind.AsMax();
+            case MetricKindTag.Min:
+                return (long)kind.AsMin();
+            case MetricKindTag.Replace:
+                return (long)kind.AsReplace();
+            default:
+                return 0;
         }
     }
 
