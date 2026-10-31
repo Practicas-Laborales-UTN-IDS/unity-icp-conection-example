@@ -423,7 +423,7 @@ public class SimonGameController : MonoBehaviour
         StartNextRound();
     }
 
-    private void FinishGame(bool completed)
+    private async void FinishGame(bool completed)
     {
         if (state == GameState.GameOver)
             return;
@@ -450,7 +450,7 @@ public class SimonGameController : MonoBehaviour
         Debug.Log($"[SIMON] Mejor nivel local: {bestLevel}");
 
         // SimulateBackendReport(reachedLevel);
-        ReportGameToBackend(reachedLevel, completed);
+        await ReportGameToBackend(reachedLevel, completed);
         _ = LoadPlayerScore();
 
         startButton.interactable = true;

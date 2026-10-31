@@ -17,9 +17,9 @@ public class ICPTestRunner : MonoBehaviour
     private const string PREF_KEY_PRIV = "icp_key_priv_b64";
     private const string PREF_KEY_PUB = "icp_key_pub_b64";
 
-    private const bool IsLocal = true;
+    private const bool IsLocal = false;
 
-    private const long MainnetGameId = 1793393496515730542;
+    private const long MainnetGameId = 1793413538697987688;
     private const long LocalGameId = 1793394058115953258;
 
     private const long GameId = IsLocal ? LocalGameId: MainnetGameId;
@@ -271,6 +271,52 @@ public class ICPTestRunner : MonoBehaviour
     }
 
     public async System.Threading.Tasks.Task ReportGameResult(int reachedLevel)
+    {
+        int maxRetries = 3;
+        int currentAttempt = 0;
+        bool success = false;
+
+        long calculatedPoints = SimonScoreCalculator.CalculatePoints(reachedLevel);
+        string payloadString = $"00,+," + calculatedPoints + "\n01,>," + reachedLevel;
+        // string payloadString = $"00,+,\n01,>,{reachedLevel}";
+        byte[] payloadBytes = System.Text.Encoding.UTF8.GetBytes(payloadString);
+        var payloadList = new System.Collections.Generic.List<byte>(payloadBytes);
+        var proofList = new System.Collections.Generic.List<byte>();
+
+        while (currentAttempt < maxRetries && !success)
+        {
+            Debug.Log($"Reintento numero {currentAttempt}");
+            currentAttempt++;
+            try
+            {
+                Debug.Log($"[ICP] Enviando resultado (Intento {currentAttempt}/{maxRetries})...");
+
+                var response = await client.EndGame(GameId, payloadList, proofList);
+
+                if (response.Tag == IDSApiClient.EndGameReturnArg0Tag.Err)
+                {
+                    throw new System.Exception($"El canister rechazó el resultado: {response.AsErr()}");
+                }
+
+                success = true;
+                Debug.Log("[ICP] ¡Partida reportada y procesada con éxito!");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[ICP] Falló el intento {currentAttempt}: {ex.Message}");
+                
+                if (currentAttempt >= maxRetries)
+                {
+                    throw new System.Exception($"[ICP] Error definitivo tras {maxRetries} intentos: {ex.Message}");
+                }
+
+                // Esperar antes del siguiente reintento (1 segundo, luego 2 segundos...)
+                await System.Threading.Tasks.Task.Delay(currentAttempt * 1000);
+            }
+        }
+    }
+
+    public async System.Threading.Tasks.Task ReportGameResult2(int reachedLevel)
     {
         Debug.Log($"[ICP] Enviando resultado al canister (Nivel alcanzado: {reachedLevel})...");
 
